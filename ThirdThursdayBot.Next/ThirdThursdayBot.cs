@@ -9,6 +9,8 @@ using ThirdThursdayBot.Models;
 using Microsoft.Extensions.Configuration;
 using System.Linq;
 using System;
+using System.Collections.Generic;
+using Microsoft.Bot.Builder.Ai.LUIS;
 
 namespace ThirdThursdayBot.Next
 {
@@ -16,6 +18,9 @@ namespace ThirdThursdayBot.Next
     {
         private readonly IFirebaseService _service;
         private readonly IYelpService _yelpService;
+
+        private readonly LuisModel luisLunchModel;
+        private readonly LuisRecognizer luisRecognizer;
         public ThirdThursdayBot(IConfiguration configuration)
         {
             //_service = new FirebaseService(configuration.GetSection("DatabaseEndpoint")?.Value);
@@ -25,7 +30,16 @@ namespace ThirdThursdayBot.Next
                 configuration.GetSection("YelpClientSecret")?.Value,
                 configuration.GetSection("YelpPreferredLocation")?.Value
             );
+
+            var luidModelId = configuration.GetSection($"Luis-ModelId-Lunch")?.Value;
+            var luisSubscriptionKey = configuration.GetSection("Luis-SubscriptionKey")?.Value;
+            var luisUri = new Uri(configuration.GetSection("Luis-Url")?.Value);
+            this.luisLunchModel = new LuisModel(luidModelId, luisSubscriptionKey, luisUri);
+            this.luisRecognizer = new LuisRecognizer(luisLunchModel);
+           
         }
+
+
         /// <summary>
         /// Every Conversation turn for our EchoBot will call this method. In here
         /// the bot checks the Activty type to verify it's a message, bumps the 
@@ -39,30 +53,37 @@ namespace ThirdThursdayBot.Next
             var activity = context.Activity;
             if (activity.Type == ActivityTypes.Message)
             {
+                var luisResult = await luisRecognizer.Recognize<LuisLunchRecognizerResult>(context.Activity.Text, System.Threading.CancellationToken.None);
+                var topIntent = luisResult.TopIntent();
                 var message = activity.Text;
 
-                if (Regex.IsMatch(message, "(?<=have we been to )(?<restaurant>[^?]+)", RegexOptions.IgnoreCase))
+                switch (topIntent.intent)
                 {
-                    var restaurant = Regex.Match(message, @"(?<=have we been to )(?<restaurant>[^?]+)", RegexOptions.IgnoreCase)?.Groups["restaurant"]?.Value ?? "";
-                    if (!string.IsNullOrWhiteSpace(restaurant))
-                    {
-                        var vistedRestaurants = await _service.GetAllVisitedRestaurantsAsync();
-                        var visitedRestaurant = vistedRestaurants.FirstOrDefault(r => string.Equals(r.Location, restaurant, StringComparison.OrdinalIgnoreCase));
-                        if (visitedRestaurant != null)
+
+                    case LuisLunchRecognizerResult.Intent.History:
+                        var restaurant = luisResult.Entities.PastRestaurant.First();
+                        if (!string.IsNullOrWhiteSpace(restaurant))
                         {
-                            await ReplyWithVisitedRestaurantAsync(visitedRestaurant, activity, context);
+                            var vistedRestaurants = await _service.GetAllVisitedRestaurantsAsync();
+                            var visitedRestaurant = vistedRestaurants.FirstOrDefault(r => string.Equals(r.Location, restaurant, StringComparison.OrdinalIgnoreCase));
+                            if (visitedRestaurant != null)
+                            {
+                                await ReplyWithVisitedRestaurantAsync(visitedRestaurant, activity, context);
+                            }
+                            else
+                            {
+                                await ReplyWithUnchosenRestaurantAsync(restaurant, activity, context);
+                            }
                         }
                         else
                         {
-                            await ReplyWithUnchosenRestaurantAsync(restaurant, activity, context);
+                            await ReplyWithUnrecognizableRestaurantAsync(activity, context);
                         }
-                    }
-                    else
-                    {
-                        await ReplyWithUnrecognizableRestaurantAsync(activity, context);
-                    }
+                        break;
                 }
-                else if (Regex.IsMatch(message, "where should we go|recommendation|pick for me", RegexOptions.IgnoreCase))
+
+               
+                 if (Regex.IsMatch(message, "where should we go|recommendation|pick for me", RegexOptions.IgnoreCase))
                 {
                     await ReplyWithRandomRestaurantRecommendation(activity, context);
                 }
@@ -80,6 +101,7 @@ namespace ThirdThursdayBot.Next
                 }
             }
         }
+
 
 
         private async Task ReplyWithNextMemberToChoose(Activity activity, ITurnContext context)
@@ -166,5 +188,34 @@ namespace ThirdThursdayBot.Next
                 choice.Location.FullAddress,
                 choice.PhoneNumber);
         }
+
+        #region 
+        private static async Task<(IEnumerable<string> intents, IEnumerable<string> entities)> RecognizeUtteranceAsync(LuisModel luisModel, string text)
+        {
+            var luisRecognizer = new LuisRecognizer(luisModel);
+            var recognizerResult = await luisRecognizer.Recognize(text, System.Threading.CancellationToken.None);
+
+            // list the intents
+            var intents = new List<string>();
+            foreach (var intent in recognizerResult.Intents)
+            {
+                intents.Add($"{intent.Key}: {intent.Value}");
+            }
+
+            // list the entities
+            var entities = new List<string>();
+            foreach (var entity in recognizerResult.Entities)
+            {
+                if (!entity.Key.ToString().Equals("$instance"))
+                {
+                    entities.Add($"{entity.Key}: {entity.Value.First}");
+                }
+            }
+
+            return (intents, entities);
+        }
+
+        #endregion
+
     }
 }

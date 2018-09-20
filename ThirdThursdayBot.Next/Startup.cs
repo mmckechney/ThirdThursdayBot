@@ -1,10 +1,12 @@
 ﻿using System;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.Bot.Builder.Ai.LUIS;
 using Microsoft.Bot.Builder.BotFramework;
 using Microsoft.Bot.Builder.Core.Extensions;
 using Microsoft.Bot.Builder.Integration.AspNet.Core;
 using Microsoft.Bot.Builder.TraceExtensions;
+using Microsoft.Cognitive.LUIS;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -34,6 +36,7 @@ namespace ThirdThursdayBot.Next
             {
                 options.CredentialProvider = new ConfigurationCredentialProvider(Configuration);
 
+
                 // The CatchExceptionMiddleware provides a top-level exception handler for your bot. 
                 // Any exceptions thrown by other Middleware, or by your OnTurn method, will be 
                 // caught here. To facillitate debugging, the exception is sent out, via Trace, 
@@ -62,6 +65,9 @@ namespace ThirdThursdayBot.Next
                 // IStorage dataStore = new Microsoft.Bot.Builder.Azure.AzureTableStorage("AzureTablesConnectionString", "TableName");
                 // IStorage dataStore = new Microsoft.Bot.Builder.Azure.AzureBlobStorage("AzureBlobConnectionString", "containerName");
 
+                //Configure LUIS
+
+               
                 options.Middleware.Add(new ConversationState<EchoState>(dataStore));
             });
         }

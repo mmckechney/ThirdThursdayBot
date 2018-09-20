@@ -4,10 +4,10 @@
   "services": [
     {
       "appId": "",
-      "id": "http://localhost:5000/api/messages",
+      "id": "http://localhost:4000/api/messages",
       "type": "endpoint",
       "appPassword": "",
-      "endpoint": "http://localhost:5000/api/messages",
+      "endpoint": "http://localhost:4000/api/messages",
       "name": "ThirdThursdayBot.Next"
     }
   ]
