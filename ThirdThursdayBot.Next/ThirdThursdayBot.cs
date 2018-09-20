@@ -59,9 +59,8 @@ namespace ThirdThursdayBot.Next
 
                 switch (topIntent.intent)
                 {
-
                     case LuisLunchRecognizerResult.Intent.History:
-                        var restaurant = luisResult.Entities.PastRestaurant.First();
+                        var restaurant = luisResult.Entities.PastRestaurant?.FirstOrDefault();
                         if (!string.IsNullOrWhiteSpace(restaurant))
                         {
                             var vistedRestaurants = await _service.GetAllVisitedRestaurantsAsync();
@@ -77,28 +76,21 @@ namespace ThirdThursdayBot.Next
                         }
                         else
                         {
-                            await ReplyWithUnrecognizableRestaurantAsync(activity, context);
+                            await ReplyWithRestaurantListingAsync(activity, context);
                         }
                         break;
-                }
+                    case LuisLunchRecognizerResult.Intent.Suggestion:
+                        await ReplyWithRandomRestaurantRecommendation(activity, context);
+                        break;
+                    case LuisLunchRecognizerResult.Intent.WhosNext:
+                        await ReplyWithNextMemberToChoose(activity, context);
+                        break;
+                    case LuisLunchRecognizerResult.Intent.None:
+                        await ReplyWithDefaultMessageAsync(activity, context);
+                        break;
 
-               
-                 if (Regex.IsMatch(message, "where should we go|recommendation|pick for me", RegexOptions.IgnoreCase))
-                {
-                    await ReplyWithRandomRestaurantRecommendation(activity, context);
                 }
-                else if (Regex.IsMatch(message, "show|all|list all", RegexOptions.IgnoreCase))
-                {
-                    await ReplyWithRestaurantListingAsync(activity, context);
-                }
-                else if (Regex.IsMatch(message, "who's next|who is next|whose (pick|turn) is it", RegexOptions.IgnoreCase))
-                {
-                    await ReplyWithNextMemberToChoose(activity, context);
-                }
-                else
-                {
-                    await ReplyWithDefaultMessageAsync(activity, context);
-                }
+                
             }
         }
 

@@ -34,9 +34,25 @@
   "patterns": [],
   "utterances": [
     {
+      "text": "all",
+      "intent": "None",
+      "entities": []
+    },
+    {
       "text": "can you recommend for me",
       "intent": "Suggestion",
       "entities": []
+    },
+    {
+      "text": "did we go to r",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "PastRestaurant",
+          "startPos": 13,
+          "endPos": 13
+        }
+      ]
     },
     {
       "text": "have we been to wendys",
@@ -50,6 +66,21 @@
       ]
     },
     {
+      "text": "list all",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "list places we have been",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "list places we've been",
+      "intent": "None",
+      "entities": []
+    },
+    {
       "text": "pick a place forme",
       "intent": "Suggestion",
       "entities": []
@@ -57,6 +88,16 @@
     {
       "text": "randomize",
       "intent": "Suggestion",
+      "entities": []
+    },
+    {
+      "text": "show all",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "show me where we have been",
+      "intent": "None",
       "entities": []
     },
     {
