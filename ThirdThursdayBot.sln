@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.28010.2019
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ThirdThursdayBot", "src\ThirdThursdayBot\ThirdThursdayBot.csproj", "{A8BA1066-5695-4D71-ABB4-65E5A5E0C3D4}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirdThursdayBot.Next", "ThirdThursdayBot.Next\ThirdThursdayBot.Next.csproj", "{602629A4-9E23-4116-A530-59F922C62AAB}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ThirdThursdayBot.Next", "src\ThirdThursdayBot.Next\ThirdThursdayBot.Next.csproj", "{602629A4-9E23-4116-A530-59F922C62AAB}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
