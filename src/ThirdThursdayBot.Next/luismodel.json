@@ -1,7 +1,7 @@
 {
   "luis_schema_version": "3.0.0",
-  "versionId": "0.1",
-  "name": "ThirdThursday",
+  "versionId": "0.2",
+  "name": "ThirdThursday.next",
   "desc": "LUIS for ThirdThursday Bot",
   "culture": "en-us",
   "intents": [
@@ -20,7 +20,11 @@
   ],
   "entities": [
     {
-      "name": "PastRestaurant",
+      "name": "Restaurant",
+      "roles": []
+    },
+    {
+      "name": "StarRating",
       "roles": []
     }
   ],
@@ -35,7 +39,7 @@
   "utterances": [
     {
       "text": "all",
-      "intent": "None",
+      "intent": "History",
       "entities": []
     },
     {
@@ -44,13 +48,29 @@
       "entities": []
     },
     {
+      "text": "can you suggest something?",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
       "text": "did we go to r",
       "intent": "History",
       "entities": [
         {
-          "entity": "PastRestaurant",
+          "entity": "Restaurant",
           "startPos": 13,
           "endPos": 13
+        }
+      ]
+    },
+    {
+      "text": "go to restaurant",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 6,
+          "endPos": 15
         }
       ]
     },
@@ -59,26 +79,195 @@
       "intent": "History",
       "entities": [
         {
-          "entity": "PastRestaurant",
+          "entity": "Restaurant",
           "startPos": 16,
           "endPos": 21
         }
       ]
     },
     {
-      "text": "list all",
+      "text": "hello",
       "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "hi",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "how about a 4 star restaurant",
+      "intent": "Suggestion",
+      "entities": [
+        {
+          "entity": "StarRating",
+          "startPos": 12,
+          "endPos": 12
+        }
+      ]
+    },
+    {
+      "text": "how about restaurant",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 10,
+          "endPos": 19
+        }
+      ]
+    },
+    {
+      "text": "how about we try restaurant",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 17,
+          "endPos": 26
+        }
+      ]
+    },
+    {
+      "text": "how are you",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "lets go someplace with 5 stars",
+      "intent": "Suggestion",
+      "entities": [
+        {
+          "entity": "StarRating",
+          "startPos": 23,
+          "endPos": 23
+        }
+      ]
+    },
+    {
+      "text": "lets go to hardys",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 11,
+          "endPos": 16
+        }
+      ]
+    },
+    {
+      "text": "let's go to longhorn steakhouse",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 12,
+          "endPos": 19
+        }
+      ]
+    },
+    {
+      "text": "lets go to unos",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 11,
+          "endPos": 14
+        }
+      ]
+    },
+    {
+      "text": "lets go to wendys",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 11,
+          "endPos": 16
+        }
+      ]
+    },
+    {
+      "text": "lets try mcdonalds",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 9,
+          "endPos": 17
+        }
+      ]
+    },
+    {
+      "text": "lets try restaurant",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 9,
+          "endPos": 18
+        }
+      ]
+    },
+    {
+      "text": "lets try tom wahls",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 9,
+          "endPos": 17
+        }
+      ]
+    },
+    {
+      "text": "let's try tom wahls",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 10,
+          "endPos": 18
+        }
+      ]
+    },
+    {
+      "text": "lets try wendys",
+      "intent": "History",
+      "entities": [
+        {
+          "entity": "Restaurant",
+          "startPos": 9,
+          "endPos": 14
+        }
+      ]
+    },
+    {
+      "text": "list all",
+      "intent": "History",
       "entities": []
     },
     {
       "text": "list places we have been",
-      "intent": "None",
+      "intent": "History",
       "entities": []
     },
     {
       "text": "list places we've been",
-      "intent": "None",
+      "intent": "History",
       "entities": []
+    },
+    {
+      "text": "pick a 4 star restaurant",
+      "intent": "Suggestion",
+      "entities": [
+        {
+          "entity": "StarRating",
+          "startPos": 7,
+          "endPos": 7
+        }
+      ]
     },
     {
       "text": "pick a place forme",
@@ -86,18 +275,85 @@
       "entities": []
     },
     {
+      "text": "pick a place with a good rating",
+      "intent": "Suggestion",
+      "entities": [
+        {
+          "entity": "StarRating",
+          "startPos": 20,
+          "endPos": 23
+        }
+      ]
+    },
+    {
       "text": "randomize",
       "intent": "Suggestion",
       "entities": []
     },
     {
+      "text": "recommend",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
+      "text": "recommendation",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
       "text": "show all",
-      "intent": "None",
+      "intent": "History",
       "entities": []
     },
     {
       "text": "show me where we have been",
+      "intent": "History",
+      "entities": []
+    },
+    {
+      "text": "suggest a decent restaurant",
+      "intent": "Suggestion",
+      "entities": [
+        {
+          "entity": "StarRating",
+          "startPos": 10,
+          "endPos": 15
+        }
+      ]
+    },
+    {
+      "text": "suggest somewhere",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
+      "text": "suggest somewhere else",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
+      "text": "suggestion",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
+      "text": "tell me what you can do",
       "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "what are you",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "what can you do?",
+      "intent": "None",
+      "entities": []
+    },
+    {
+      "text": "what do you suggest?",
+      "intent": "Suggestion",
       "entities": []
     },
     {
@@ -132,6 +388,16 @@
     },
     {
       "text": "where should we go",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
+      "text": "where should we go?",
+      "intent": "Suggestion",
+      "entities": []
+    },
+    {
+      "text": "where would you go?",
       "intent": "Suggestion",
       "entities": []
     },

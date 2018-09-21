@@ -11,6 +11,7 @@ using System.Linq;
 using System;
 using System.Collections.Generic;
 using Microsoft.Bot.Builder.Ai.LUIS;
+using AdaptiveCards;
 
 namespace ThirdThursdayBot.Next
 {
@@ -60,7 +61,8 @@ namespace ThirdThursdayBot.Next
                 switch (topIntent.intent)
                 {
                     case LuisLunchRecognizerResult.Intent.History:
-                        var restaurant = luisResult.Entities.PastRestaurant?.FirstOrDefault();
+                        var restaurant = luisResult.Entities.Restaurant?.FirstOrDefault();
+                        
                         if (!string.IsNullOrWhiteSpace(restaurant))
                         {
                             var vistedRestaurants = await _service.GetAllVisitedRestaurantsAsync();
@@ -80,7 +82,8 @@ namespace ThirdThursdayBot.Next
                         }
                         break;
                     case LuisLunchRecognizerResult.Intent.Suggestion:
-                        await ReplyWithRandomRestaurantRecommendation(activity, context);
+                        var starRating = luisResult.Entities.StarRating?.FirstOrDefault();
+                        await ReplyWithRandomRestaurantRecommendation(starRating, activity, context);
                         break;
                     case LuisLunchRecognizerResult.Intent.WhosNext:
                         await ReplyWithNextMemberToChoose(activity, context);
@@ -126,23 +129,89 @@ namespace ThirdThursdayBot.Next
 
         private async Task ReplyWithVisitedRestaurantAsync(Restaurant restaurant, Activity activity, ITurnContext context)
         {
-            var replyMessage = string.Format(Messages.PreviouslyChosenResturantFormattingMessage, restaurant.Location, restaurant.PickedBy, restaurant.Date);
-            var reply = activity.CreateReply(replyMessage);
 
+            AdaptiveCard card = new AdaptiveCard();
+            card.Speak = $"You have already been to {restaurant.Location}";
+
+
+            card.Body.Add(new AdaptiveTextBlock()
+            {
+                Text = $"You have already been to {restaurant.Location}.",
+                Weight = AdaptiveTextWeight.Default
+
+            });
+
+            var set = new AdaptiveFactSet();
+            set.Facts.Add(new AdaptiveFact()
+            {
+                Title = "Chosen By",
+                Value = restaurant.PickedBy
+
+            });
+            set.Facts.Add(new AdaptiveFact()
+            {
+                Title = "On",
+                Value = restaurant.Date.ToShortDateString()
+
+            });
+            card.Body.Add(set);
+
+            var attachment = new Attachment()
+            {
+                Content = card,
+                ContentType = "application/vnd.microsoft.card.adaptive",
+                Name = "AlreadyChosen"
+            };
+
+
+            var reply = activity.CreateReply();
+            reply.Attachments = new List<Attachment>() { attachment };
             await context.SendActivity(reply);
+           
         }
 
         private async Task ReplyWithUnchosenRestaurantAsync(string restaurant, Activity activity, ITurnContext context)
         {
-            var replyMessage = string.Format(Messages.UnchosenRestaurantFormattingMessage, restaurant);
-            var reply = activity.CreateReply(replyMessage);
+            var reply = activity.CreateReply();
+            var details = await _yelpService.GetRestaurantDetailsAsync(restaurant);
+            if (details != null)
+            {
+                string msg;
+                if (details.Name.ToLowerInvariant().IndexOf(restaurant.ToLowerInvariant().Trim()) == -1)
+                {
+                    msg = $"I couldn't find <b>{restaurant}</b>, but <b>{details.Name}</b> looks like it might be good";
+                }
+                else
+                {
+                    msg = $"Sure thing <b>{details.Name}</b> sounds great!";
+                }
 
-            await context.SendActivity(reply);
-        }
+                AdaptiveCard card = new AdaptiveCard();
+                card.Speak = msg;
+                card.Body.Add(new AdaptiveTextBlock()
+                {
+                    Text = msg,
+                    Weight = AdaptiveTextWeight.Default,
+                    Wrap = true
+                });
 
-        private async Task ReplyWithUnrecognizableRestaurantAsync(Activity activity, ITurnContext context)
-        {
-            var reply = activity.CreateReply(Messages.UnrecognizableRestaurantMessage);
+                AppendRestaurantDetailsCard(ref card, details);
+                
+                var attachment = new Attachment()
+                {
+                    Content = card,
+                    ContentType = "application/vnd.microsoft.card.adaptive",
+                    Name = "New Restaurant Card"
+                };
+
+                reply.Attachments.Add(attachment);
+                
+            }
+            else
+            {
+            }
+
+            
 
             await context.SendActivity(reply);
         }
@@ -155,14 +224,17 @@ namespace ThirdThursdayBot.Next
             await context.SendActivity(reply);
         }
 
-        private async Task ReplyWithRandomRestaurantRecommendation(Activity activity, ITurnContext context)
+        private async Task ReplyWithRandomRestaurantRecommendation(string starRating, Activity activity,  ITurnContext context)
         {
+
             try
             {
                 var previouslyVisistedRestaurants = await _service.GetAllVisitedRestaurantsAsync();
-                var recommendation = await _yelpService.GetRandomUnvisitedRestaurantAsync(previouslyVisistedRestaurants);
+                var recommendation = await _yelpService.GetRandomUnvisitedRestaurantAsync(previouslyVisistedRestaurants, starRating);
+                var recommendationAttachment = GetFormattedRecommendation(recommendation);
 
-                var recommendationMessage = activity.CreateReply(GetFormattedRecommendation(recommendation));
+                var recommendationMessage = activity.CreateReply();
+                recommendationMessage.Attachments = new List<Attachment>() { recommendationAttachment };
                 await context.SendActivity(recommendationMessage);
             }
             catch
@@ -172,41 +244,113 @@ namespace ThirdThursdayBot.Next
             }
         }
 
-        private string GetFormattedRecommendation(YelpBusiness choice)
+        private Attachment GetFormattedRecommendation(YelpBusiness choice)
         {
-            return string.Format(Messages.RecommendationFormattingMessage,
-                choice.Name,
-                choice.Rating,
-                choice.Location.FullAddress,
-                choice.PhoneNumber);
+
+            AdaptiveCard card = new AdaptiveCard();
+            card.Speak = $"How about trying {choice.Name}";
+
+
+            card.Body.Add(new AdaptiveTextBlock()
+            {
+                Text = $"Here's a recommendation for you",
+                Weight = AdaptiveTextWeight.Bolder
+
+            });
+
+            AppendRestaurantDetailsCard(ref card, choice);
+
+
+            var attachment = new Attachment()
+            {
+                Content = card,
+                ContentType = "application/vnd.microsoft.card.adaptive",
+                Name = "Recommendation Card"
+            };
+
+            return attachment;
+
+   
+
         }
 
-        #region 
-        private static async Task<(IEnumerable<string> intents, IEnumerable<string> entities)> RecognizeUtteranceAsync(LuisModel luisModel, string text)
+        #region Adaptive Card Helpers
+        private void AppendRestaurantDetailsCard(ref AdaptiveCard card, YelpBusiness details)
         {
-            var luisRecognizer = new LuisRecognizer(luisModel);
-            var recognizerResult = await luisRecognizer.Recognize(text, System.Threading.CancellationToken.None);
+            var stdElements = StandardRestaurantCardElements(details);
+            var choiceActions = StandardRestaurantChoiceElements(details.YelpSearchUrl);
 
-            // list the intents
-            var intents = new List<string>();
-            foreach (var intent in recognizerResult.Intents)
-            {
-                intents.Add($"{intent.Key}: {intent.Value}");
-            }
-
-            // list the entities
-            var entities = new List<string>();
-            foreach (var entity in recognizerResult.Entities)
-            {
-                if (!entity.Key.ToString().Equals("$instance"))
-                {
-                    entities.Add($"{entity.Key}: {entity.Value.First}");
-                }
-            }
-
-            return (intents, entities);
+            card.Body.AddRange(stdElements);
+            card.Actions.AddRange(choiceActions);
         }
+        private List<AdaptiveElement> StandardRestaurantCardElements(YelpBusiness restaurant)
+        {
+            List<AdaptiveElement> lst = new List<AdaptiveElement>();
+            lst.Add(new AdaptiveTextBlock()
+            {
+                Text = restaurant.Name,
+                Separator = true
 
+            });
+            lst.Add(new AdaptiveTextBlock()
+            {
+                Text = restaurant.Location.FullAddress,
+                Separator = false
+
+            });
+            lst.Add(new AdaptiveTextBlock()
+            {
+                Text = $"Phone: {restaurant.PhoneNumber}",
+                Separator = false
+
+            });
+            lst.Add(new AdaptiveTextBlock()
+            {
+                Text = $"Start rating: {restaurant.Rating}",
+                Separator = false
+
+            });
+
+            lst.Add(new AdaptiveImage(restaurant.Image)
+            {
+
+                Separator = true,
+                Size = AdaptiveImageSize.Auto
+
+            });
+
+            return lst;
+
+        }
+        private List<AdaptiveAction> StandardRestaurantChoiceElements(string yelpUrl)
+        {
+            List<AdaptiveAction> lst = new List<AdaptiveAction>();
+
+            lst.Add(new AdaptiveOpenUrlAction()
+            {
+                Url = new Uri(yelpUrl),
+                Title = "More Information ..."
+            });
+
+            lst.Add(new AdaptiveSubmitAction()
+            {
+                  Title = "Pick this restaurant",
+                  Data = "Pick this restaurant"
+
+            });
+
+
+            lst.Add(new AdaptiveSubmitAction()
+            {
+                Title = "Suggest somewhere else",
+                Data = "Suggest somewhere else"
+            });
+
+
+
+            return lst;
+
+        }
         #endregion
 
     }

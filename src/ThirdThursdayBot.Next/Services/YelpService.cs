@@ -26,24 +26,17 @@ namespace ThirdThursdayBot.Services
         /// <summary>
         /// Gets a random, unvisited Restauraunt from Yelp's API
         /// </summary>
-        public async Task<YelpBusiness> GetRandomUnvisitedRestaurantAsync(Restaurant[] restaurantsToExclude)
+        public async Task<YelpBusiness> GetRandomUnvisitedRestaurantAsync(Restaurant[] restaurantsToExclude, string starRating)
         {
+            var (low,high) = InterpretStarRating(starRating);
             try
             {
                 using (var yelpClient = new HttpClient())
                 {
                     yelpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_clientSecret}");
-                    //await EnsureYelpAuthenticationAsync(yelpClient);
-
-                    //if (string.IsNullOrWhiteSpace(_authToken))
-                    //{
-                    //    // Yelp failed to authenticate properly, you should probably check the Client ID and Secret to ensure they are correct
-                    //    // or you could throw an exception and log it here (i.e. YelpAuthenticationException, etc.)
-                    //    return null;
-                    //}
-
                     var response = await GetYelpSearchQueryAsync(yelpClient);
                     var recommendation = response.Restaurants
+                                                  .Where(r => r.Rating >= low && r.Rating <= high)
                                                  .OrderBy(r => Guid.NewGuid())
                                                  .First(r => restaurantsToExclude.All(v => !v.Location.Contains(r.Name) && !r.Name.Contains(v.Location)));
 
@@ -51,6 +44,53 @@ namespace ThirdThursdayBot.Services
                 }
             }
             catch(Exception exe)
+            {
+                // Something else bad happened when communicating with Yelp; If you like logging, you should probably do that here
+                return null;
+            }
+        }
+        private (double,double) InterpretStarRating(string starRating)
+        {
+            if (starRating == null)
+                return (2.0,5.0);
+
+            double rating;
+            if(double.TryParse(starRating, out rating))
+            {
+                return (rating,rating);
+            }
+            switch(starRating.ToLowerInvariant())
+            {
+                case "excellent":
+                case "great":
+                case "awesome":
+                case "classy":
+                case "superb":
+                    return (4.0,5.0);
+                case "good":
+                case "decent":
+                    return (3.0,4.0);
+                case "OK":
+                case "Fair":
+                default:
+                    return (2.0,3.0);
+            }
+        }
+
+        public async Task<YelpBusiness> GetRestaurantDetailsAsync(string restaurantName)
+        {
+            try
+            {
+                using (var yelpClient = new HttpClient())
+                {
+                    yelpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_clientSecret}");
+                    var response = await GetYelpSearchQueryAsync(yelpClient, restaurantName);
+                    var recommendation = response.Restaurants.First();
+
+                    return recommendation;
+                }
+            }
+            catch (Exception exe)
             {
                 // Something else bad happened when communicating with Yelp; If you like logging, you should probably do that here
                 return null;
@@ -73,21 +113,28 @@ namespace ThirdThursdayBot.Services
             }
         }
 
-        /// <summary>
-        /// Sets the headers and search terms for the Yelp search query
-        /// </summary>
-        private async Task<YelpSearchResponse> GetYelpSearchQueryAsync(HttpClient yelpClient)
+        private async Task<YelpSearchResponse> GetYelpSearchQueryAsync(HttpClient yelpClient, string restaurantName)
         {
-            //yelpClient.DefaultRequestHeaders.TryAddWithoutValidation("Authorization", $"Bearer {_authToken}");
+            if (string.IsNullOrWhiteSpace(restaurantName))
+            {
+                restaurantName = "food";
+            }
             var searchTerms = new[]
             {
-                $"term=food",
+                $"term={restaurantName}",
                 $"location={_preferredLocation}",
                 $"limit=50"
             };
 
             var searchRequest = await yelpClient.GetStringAsync($"{YelpSearchUrl}{string.Join("&", searchTerms)}");
             return JsonConvert.DeserializeObject<YelpSearchResponse>(searchRequest);
+        }
+        /// <summary>
+        /// Sets the headers and search terms for the Yelp search query
+        /// </summary>
+        private async Task<YelpSearchResponse> GetYelpSearchQueryAsync(HttpClient yelpClient)
+        {
+            return await GetYelpSearchQueryAsync(yelpClient, null);
         }
     }
 }

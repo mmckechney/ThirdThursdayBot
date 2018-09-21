@@ -12,7 +12,11 @@ namespace ThirdThursdayBot.Models
         public string Image { get; set; }
         [JsonProperty("phone")]
         public string PhoneNumber { get; set; }
+        [JsonProperty("distance")]
+        public double Distance { get; set; }
         [JsonProperty("location")]
         public YelpLocation Location { get; set; }
+        [JsonProperty("url")]
+        public string YelpSearchUrl { get; set; }
     }
 }

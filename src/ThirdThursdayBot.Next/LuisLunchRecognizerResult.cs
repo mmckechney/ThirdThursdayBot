@@ -23,12 +23,14 @@ namespace ThirdThursdayBot
         public class _Entities
         {
             // Simple entities
-            public string[] PastRestaurant;
+            public string[] Restaurant;
+            public string[] StarRating;
 
             // Instance
             public class _Instance
             {
-                public Microsoft.Bot.Builder.Ai.LUIS.InstanceData[] PastRestaurant;
+                public Microsoft.Bot.Builder.Ai.LUIS.InstanceData[] Restaurant;
+                public Microsoft.Bot.Builder.Ai.LUIS.InstanceData[] StarRating;
             }
             [JsonProperty("$instance")]
             public _Instance _instance;
