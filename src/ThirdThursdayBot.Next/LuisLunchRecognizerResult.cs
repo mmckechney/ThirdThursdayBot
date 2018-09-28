@@ -6,9 +6,11 @@
 // </auto-generated>
 using Newtonsoft.Json;
 using System.Collections.Generic;
+using Microsoft.Bot.Builder;
+using Microsoft.Bot.Builder.AI.Luis;
 namespace ThirdThursdayBot
 {
-    public class LuisLunchRecognizerResult: Microsoft.Bot.Builder.Core.Extensions.IRecognizerConvert
+    public class LuisLunchRecognizerResult: IRecognizerConvert
     {
         public string Text;
         public string AlteredText;
@@ -18,7 +20,7 @@ namespace ThirdThursdayBot
             Suggestion, 
             WhosNext
         };
-        public Dictionary<Intent, Microsoft.Bot.Builder.Ai.LUIS.IntentData> Intents;
+        public Dictionary<Intent, IntentScore> Intents;
 
         public class _Entities
         {
@@ -29,8 +31,8 @@ namespace ThirdThursdayBot
             // Instance
             public class _Instance
             {
-                public Microsoft.Bot.Builder.Ai.LUIS.InstanceData[] Restaurant;
-                public Microsoft.Bot.Builder.Ai.LUIS.InstanceData[] StarRating;
+                public InstanceData[] Restaurant;
+                public InstanceData[] StarRating;
             }
             [JsonProperty("$instance")]
             public _Instance _instance;
@@ -59,7 +61,7 @@ namespace ThirdThursdayBot
                 if (entry.Value.Score > max)
                 {
                     maxIntent = entry.Key;
-                    max = entry.Value.Score;
+                    max = entry.Value.Score.Value;
                 }
             }
             return (maxIntent, max);

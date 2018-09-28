@@ -1,26 +1,24 @@
-﻿using System.Threading.Tasks;
-using Microsoft.Bot;
+﻿using AdaptiveCards;
 using Microsoft.Bot.Builder;
-using Microsoft.Bot.Builder.Core.Extensions;
+using Microsoft.Bot.Builder.AI.Luis;
 using Microsoft.Bot.Schema;
-using System.Text.RegularExpressions;
-using ThirdThursdayBot.Services;
-using ThirdThursdayBot.Models;
 using Microsoft.Extensions.Configuration;
-using System.Linq;
 using System;
 using System.Collections.Generic;
-using Microsoft.Bot.Builder.Ai.LUIS;
-using AdaptiveCards;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using ThirdThursdayBot.Models;
+using ThirdThursdayBot.Services;
 
 namespace ThirdThursdayBot.Next
 {
-    public class ThirdThursdayBot : IBot
+    public class ThirdThursdayBot : Microsoft.Bot.Builder.IBot
     {
         private readonly IFirebaseService _service;
         private readonly IYelpService _yelpService;
 
-        private readonly LuisModel luisLunchModel;
+        private readonly LuisApplication luisLunchModel;
         private readonly LuisRecognizer luisRecognizer;
         public ThirdThursdayBot(IConfiguration configuration)
         {
@@ -34,8 +32,8 @@ namespace ThirdThursdayBot.Next
 
             var luidModelId = configuration.GetSection($"Luis-ModelId-Lunch")?.Value;
             var luisSubscriptionKey = configuration.GetSection("Luis-SubscriptionKey")?.Value;
-            var luisUri = new Uri(configuration.GetSection("Luis-Url")?.Value);
-            this.luisLunchModel = new LuisModel(luidModelId, luisSubscriptionKey, luisUri);
+            var luisUri = configuration.GetSection("Luis-Url")?.Value;
+            this.luisLunchModel = new LuisApplication(luidModelId, luisSubscriptionKey, luisUri);
             this.luisRecognizer = new LuisRecognizer(luisLunchModel);
            
         }
@@ -49,12 +47,13 @@ namespace ThirdThursdayBot.Next
         /// </summary>
         /// <param name="context">Turn scoped context containing all the data needed
         /// for processing this conversation turn. </param>        
-        public async Task OnTurn(ITurnContext context)
+        public async Task OnTurnAsync(ITurnContext context, CancellationToken cancellationToken = default(CancellationToken))
         {
             var activity = context.Activity;
             if (activity.Type == ActivityTypes.Message)
             {
-                var luisResult = await luisRecognizer.Recognize<LuisLunchRecognizerResult>(context.Activity.Text, System.Threading.CancellationToken.None);
+                var generic = await luisRecognizer.RecognizeAsync(context, System.Threading.CancellationToken.None);
+                var luisResult = await luisRecognizer.RecognizeAsync<LuisLunchRecognizerResult>(context, System.Threading.CancellationToken.None);
                 var topIntent = luisResult.TopIntent();
                 var message = activity.Text;
 
@@ -112,19 +111,19 @@ namespace ThirdThursdayBot.Next
 
                 var replyMessage = string.Format(Messages.NextChooserFormattingMessage, nextMember, nextMonth.ToString("MMMM"));
                 var reply = activity.CreateReply(replyMessage);
-                await context.SendActivity(reply);
+                await context.SendActivityAsync(reply);
             }
             catch
             {
                 var reply = activity.CreateReply("I'm not sure who has the next pick. Try again later.");
-                await context.SendActivity(reply);
+                await context.SendActivityAsync(reply);
             }
         }
 
         private async Task ReplyWithDefaultMessageAsync(Activity activity, ITurnContext context)
         {
             var reply = activity.CreateReply(Messages.DefaultResponseMessage);
-            await context.SendActivity(reply);
+            await context.SendActivityAsync(reply);
         }
 
         private async Task ReplyWithVisitedRestaurantAsync(Restaurant restaurant, Activity activity, ITurnContext context)
@@ -166,7 +165,7 @@ namespace ThirdThursdayBot.Next
 
             var reply = activity.CreateReply();
             reply.Attachments = new List<Attachment>() { attachment };
-            await context.SendActivity(reply);
+            await context.SendActivityAsync(reply);
            
         }
 
@@ -213,7 +212,7 @@ namespace ThirdThursdayBot.Next
 
             
 
-            await context.SendActivity(reply);
+            await context.SendActivityAsync(reply);
         }
 
         private async Task ReplyWithRestaurantListingAsync(Activity activity, ITurnContext context)
@@ -221,7 +220,7 @@ namespace ThirdThursdayBot.Next
             var replyMessage = await _service.GetPreviouslyVisitedRestaurantsMessageAsync();
             var reply = activity.CreateReply(replyMessage);
 
-            await context.SendActivity(reply);
+            await context.SendActivityAsync(reply);
         }
 
         private async Task ReplyWithRandomRestaurantRecommendation(string starRating, Activity activity,  ITurnContext context)
@@ -231,16 +230,29 @@ namespace ThirdThursdayBot.Next
             {
                 var previouslyVisistedRestaurants = await _service.GetAllVisitedRestaurantsAsync();
                 var recommendation = await _yelpService.GetRandomUnvisitedRestaurantAsync(previouslyVisistedRestaurants, starRating);
-                var recommendationAttachment = GetFormattedRecommendation(recommendation);
+                if (recommendation == null)
+                {
+                    double x;
+                    if (double.TryParse(starRating, out x))
+                    {
+                        starRating = starRating + " star";
+                    }
+                    await context.SendActivityAsync($"Sorry, I couldn't find a {starRating} place. Can you try a different rating?");
 
-                var recommendationMessage = activity.CreateReply();
-                recommendationMessage.Attachments = new List<Attachment>() { recommendationAttachment };
-                await context.SendActivity(recommendationMessage);
+                }
+                else
+                {
+                    var recommendationAttachment = GetFormattedRecommendation(recommendation);
+
+                    var recommendationMessage = activity.CreateReply();
+                    recommendationMessage.Attachments = new List<Attachment>() { recommendationAttachment };
+                    await context.SendActivityAsync(recommendationMessage);
+                }
             }
             catch
             {
                 var failedMessage = activity.CreateReply(Messages.UnableToGetRecommendationMessage);
-                await context.SendActivity(failedMessage);
+                await context.SendActivityAsync(failedMessage);
             }
         }
 
@@ -351,6 +363,7 @@ namespace ThirdThursdayBot.Next
             return lst;
 
         }
+
         #endregion
 
     }
